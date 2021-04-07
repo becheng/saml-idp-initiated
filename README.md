@@ -1,4 +1,4 @@
-# Samples B2C Custom policies using IDP-initiated flow 
+# B2C IDP-initiated custom policies samples
 - Sample using a Federated external IDP (ADFS): SignUpOrSignInSAML-IdP-Initiated-adfs.xml
 - Sample using B2C Local Account: SignUpOrSignInSAML-IdP-Initiated-localacccount.xml
 

@@ -1,0 +1,109 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<TrustFrameworkPolicy xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+  xmlns="http://schemas.microsoft.com/online/cpim/schemas/2013/06" PolicySchemaVersion="0.3.0.0" 
+  TenantId="b2c-tenant.onmicrosoft.com" PolicyId="B2C_1A_SAML_IdP_Initiated-localaccount" 
+  PublicPolicyUri="http://b2c-tenant.onmicrosoft.com/B2C_1A_SAML_IdP_Initiated-localaccount">
+
+  <BasePolicy>
+    <TenantId>b2c-tenant.onmicrosoft.com</TenantId>
+    <PolicyId>B2C_1A_TrustFrameworkExtensions</PolicyId>
+  </BasePolicy>
+
+  <ClaimsProviders>
+    <!-- Define the B2C Saml token issuer that will send the saml assertions to the SP
+    Note: the issuerUri is the issuer value that SP expects  -->
+    <ClaimsProvider>
+      <DisplayName>SAML Token Issuer</DisplayName>
+      <TechnicalProfiles>
+        <TechnicalProfile Id="SAMLAssert">
+          <DisplayName>B2C SAML Assertion</DisplayName>
+          <Protocol Name="SAML2" />
+          <Metadata>
+            <Item Key="IssuerUri">https://samltestsp.azurewebsites.net</Item>
+          </Metadata>
+          <CryptographicKeys>
+            <Key Id="SamlMessageSigning" StorageReferenceId="B2C_1A_B2CSamlCert" />
+            <Key Id="SamlAssertionSigning" StorageReferenceId="B2C_1A_B2CSamlCert" />
+            <Key Id="SamlAssertionDecryption" StorageReferenceId="B2C_1A_B2CSamlCert" />
+          </CryptographicKeys>
+          <InputClaims/>
+          <OutputClaims/>
+          <UseTechnicalProfileForSessionManagement ReferenceId="SM-Saml-issuer"/>          
+        </TechnicalProfile>
+
+        <!-- Session management technical profile for SAML based tokens -->
+        <TechnicalProfile Id="SM-Saml-issuer">
+          <DisplayName>Session Management Provider</DisplayName>
+          <Protocol Name="Proprietary" Handler="Web.TPEngine.SSO.SamlSSOSessionProvider, Web.TPEngine, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null"/>
+        </TechnicalProfile>
+
+      </TechnicalProfiles>
+    </ClaimsProvider>
+
+  </ClaimsProviders>
+
+  <UserJourneys>
+    <UserJourney Id="ADFSSamlIDPSignUpOrSignInWithLocalAccount">
+      <OrchestrationSteps>
+
+        <OrchestrationStep Order="1" Type="CombinedSignInAndSignUp" ContentDefinitionReferenceId="api.signuporsignin">
+          <ClaimsProviderSelections>
+            <ClaimsProviderSelection ValidationClaimsExchangeId="LocalAccountSigninEmailExchange" />
+          </ClaimsProviderSelections>
+          <ClaimsExchanges>
+            <ClaimsExchange Id="LocalAccountSigninEmailExchange" TechnicalProfileReferenceId="SelfAsserted-LocalAccountSignin-Email" />
+          </ClaimsExchanges>
+        </OrchestrationStep>
+
+        <OrchestrationStep Order="2" Type="ClaimsExchange">
+          <Preconditions>
+            <Precondition Type="ClaimsExist" ExecuteActionsIf="true">
+              <Value>objectId</Value>
+              <Action>SkipThisOrchestrationStep</Action>
+            </Precondition>
+          </Preconditions>
+          <ClaimsExchanges>
+            <ClaimsExchange Id="SignUpWithLogonEmailExchange" TechnicalProfileReferenceId="LocalAccountSignUpWithLogonEmail" />
+          </ClaimsExchanges>
+        </OrchestrationStep>
+
+        <!-- This step reads any user attributes that we may not have received when authenticating using ESTS so they can be sent 
+          in the token. -->
+        <OrchestrationStep Order="3" Type="ClaimsExchange">
+          <ClaimsExchanges>
+            <ClaimsExchange Id="AADUserReadWithObjectId" TechnicalProfileReferenceId="AAD-UserReadUsingObjectId" />
+          </ClaimsExchanges>
+        </OrchestrationStep>
+
+        <OrchestrationStep Order="4" Type="SendClaims" CpimIssuerTechnicalProfileReferenceId="SAMLAssert" />
+
+      </OrchestrationSteps>
+      <ClientDefinition ReferenceId="DefaultWeb" />
+    </UserJourney>
+  </UserJourneys>
+
+  <RelyingParty>
+    <DefaultUserJourney ReferenceId="ADFSSamlIDPSignUpOrSignInWithLocalAccount" />
+    <TechnicalProfile Id="SAMLRP">
+      <DisplayName>PolicyProfile</DisplayName>
+      <Protocol Name="SAML2" />
+      <OutputTokenFormat>SAML2</OutputTokenFormat>
+      <Metadata>
+        <Item Key="PartnerEntity">https://samltestsp.azurewebsites.net/Metadata</Item>
+        <!-- Added for IDP Initated SSO From the B2C Side -->
+        <Item Key="IdpInitiatedProfileEnabled">true</Item>
+      </Metadata>
+      <OutputClaims>
+        <OutputClaim ClaimTypeReferenceId="objectId" PartnerClaimType="SubjectNamingInfo" DefaultValue="NOSUBSET" />
+        <OutputClaim ClaimTypeReferenceId="givenName" />
+        <OutputClaim ClaimTypeReferenceId="surname" />
+        <OutputClaim ClaimTypeReferenceId="email" />
+        <OutputClaim ClaimTypeReferenceId="displayName" />
+        <!-- <OutputClaim ClaimTypeReferenceId="authenticationSource" PartnerClaimType="identityProvider"/>     -->
+      </OutputClaims>
+      <SubjectNamingInfo ClaimType="SubjectNamingInfo" Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient"/>
+    </TechnicalProfile>
+  </RelyingParty>
+
+</TrustFrameworkPolicy>
